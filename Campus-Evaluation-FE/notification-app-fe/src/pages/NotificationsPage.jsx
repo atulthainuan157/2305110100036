@@ -35,7 +35,7 @@ export function NotificationsPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: 720, mx: "auto", px: 2, py: 4 }}>
+    <Box className="animate-fade-in-up" sx={{ maxWidth: 720, mx: "auto", px: 2, py: 6 }}>
       <Stack direction="row" alignItems="center" spacing={1.5} mb={3}>
         <Badge badgeContent={unreadCount} color="primary" max={99}>
           <NotificationsIcon sx={{ fontSize: 28 }} />
@@ -66,9 +66,9 @@ export function NotificationsPage() {
       )}
 
       {!loading && !error && notifications.length > 0 && (
-        <Stack spacing={1.5}>
-          {notifications.map((n) => (
-            <NotificationCard key={n.id} notification={n} />
+        <Stack spacing={2}>
+          {notifications.map((n, index) => (
+            <NotificationCard key={n.id} notification={n} index={index} />
           ))}
         </Stack>
       )}
