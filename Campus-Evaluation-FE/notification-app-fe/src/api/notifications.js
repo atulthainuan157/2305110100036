@@ -1,15 +1,52 @@
-export async function fetchNotifications(filter = "All", page = 1) {
-  await new Promise((resolve) => setTimeout(resolve, 800));
+import { setAccessToken } from "../../logging-middleware/logger";
 
-  const allNotifications = [
-    { id: 1, type: "Placement", title: "New Job Posting", message: "Google is hiring for SDE1.", timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(), isRead: false },
-    { id: 2, type: "Result", title: "Exam Results Declared", message: "Your Mid-Sem results for Semester 6 are out.", timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), isRead: false },
-    { id: 3, type: "Event", title: "Tech Fest 2026", message: "Register for the upcoming tech fest before Friday.", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), isRead: true },
-    { id: 4, type: "Placement", title: "Interview Call", message: "You have been shortlisted for Microsoft interview.", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), isRead: true },
-    { id: 5, type: "Event", title: "Workshop on GenAI", message: "Join us for a 2-day workshop on Generative AI.", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(), isRead: true },
-    { id: 6, type: "Result", title: "Re-evaluation Results", message: "Re-evaluation results for Semester 5 are published.", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(), isRead: true },
-    { id: 7, type: "Placement", title: "Pre-Placement Talk", message: "Amazon PPT is scheduled for tomorrow at 10 AM.", timestamp: new Date(Date.now() - 1000 * 60 * 60 * 120).toISOString(), isRead: true },
-  ];
+const BASE_URL = "http://4.224.186.213/evaluation-service";
+let currentToken = null;
+
+async function authenticate() {
+  if (currentToken) return currentToken;
+
+  const payload = {
+    email: import.meta.env.VITE_EMAIL,
+    name: import.meta.env.VITE_NAME,
+    rollNo: import.meta.env.VITE_ROLL_NO,
+    accessCode: import.meta.env.VITE_ACCESS_CODE,
+    clientID: import.meta.env.VITE_CLIENT_ID,
+    clientSecret: import.meta.env.VITE_CLIENT_SECRET
+  };
+
+  const response = await fetch(`${BASE_URL}/auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw new Error("Authentication failed. Please check your credentials in the .env file.");
+  }
+
+  const data = await response.json();
+  currentToken = data.accessToken || data.token;
+  setAccessToken(currentToken); // Provide token to the logger middleware
+  return currentToken;
+}
+
+export async function fetchNotifications(filter = "All", page = 1) {
+  const token = await authenticate();
+
+  const response = await fetch(`${BASE_URL}/notifications`, {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${token}`,
+      "Content-Type": "application/json"
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch notifications: ${response.statusText}`);
+  }
+
+  const allNotifications = await response.json();
 
   let filtered = allNotifications;
   if (filter && filter !== "All") {
